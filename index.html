@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!--
+    JalCycle — Water Arrival Tracker
+    An offline-first, mobile web app for tracking and predicting Indian household water supply cycles.
+  -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#040d1a">
+  <meta name="description" content="JalCycle — Effortless water arrival tracker and prediction app for Indian households.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>JalCycle — Water Arrival Tracker</title>
+
+  <!-- Google Font: Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Application Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Inline Web Manifest for PWA Home Screen installation -->
+  <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22JalCycle%22%2C%22short_name%22%3A%22JalCycle%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23040d1a%22%2C%22theme_color%22%3A%22%23040d1a%22%7D">
+</head>
+<body>
+
+  <!-- Hidden SVG Sprite & Gradients -->
+  <svg style="display: none;">
+    <defs>
+      <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#22d3ee" />
+        <stop offset="100%" stop-color="#0284c7" />
+      </linearGradient>
+      <linearGradient id="todayGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#fbbf24" />
+        <stop offset="100%" stop-color="#d97706" />
+      </linearGradient>
+      <linearGradient id="overdueGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#f87171" />
+        <stop offset="100%" stop-color="#dc2626" />
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <div id="app">
+    <!-- APP HEADER -->
+    <header class="app-header">
+      <div class="brand-container">
+        <div class="brand-logo" aria-label="JalCycle Logo">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+          </svg>
+        </div>
+        <div class="brand-text-wrap">
+          <h1 class="brand-title">JalCycle</h1>
+          <span class="household-badge" id="header-household-name">My Home</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" id="btn-open-help" title="How it works" aria-label="Help">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN SCROLLABLE CONTENT -->
+    <main class="main-content">
+      
+      <!-- ==================== HOME TAB ==================== -->
+      <section id="home-tab" class="tab-panel active">
+        
+        <!-- HERO COUNTDOWN CARD (Shown when history exists) -->
+        <div class="hero-card" id="hero-card">
+          <div class="hero-header-badge" id="hero-badge-text">NEXT WATER EXPECTED</div>
+          
+          <!-- SVG Circular Progress Ring -->
+          <div class="gauge-container">
+            <svg class="gauge-svg" viewBox="0 0 120 120">
+              <circle class="gauge-track" cx="60" cy="60" r="50"></circle>
+              <circle class="gauge-fill" id="gauge-circle" cx="60" cy="60" r="50" 
+                      stroke-dasharray="314.159" stroke-dashoffset="0"></circle>
+            </svg>
+            <div class="gauge-center-content">
+              <svg class="gauge-drop-icon" viewBox="0 0 24 24">
+                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+              </svg>
+              <div class="countdown-main" id="hero-countdown">3 Days</div>
+              <div class="countdown-sub" id="hero-countdown-sub">to go</div>
+            </div>
+          </div>
+
+          <div class="hero-date-title" id="hero-expected-date">Thursday, 9 Oct</div>
+          
+          <div class="likely-window-pill" id="hero-window-pill">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            <span id="hero-window-text">Likely window: 7 Oct – 10 Oct</span>
+          </div>
+
+          <div class="hero-footer-info" id="hero-last-info">
+            Last arrival: Sun, 5 Oct · logged by Family
+          </div>
+        </div>
+
+        <!-- STALE LOG ALERT BANNER (Shown dynamically if > gap+3 days elapsed) -->
+        <div class="stale-alert-card" id="stale-alert-banner" style="display: none;">
+          <svg class="stale-alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <div class="stale-alert-content">
+            <div class="stale-alert-title" id="stale-title">Stale Record Alert</div>
+            <div class="stale-alert-desc" id="stale-desc">It's been 9 days since water last arrived. Did you forget to record a cycle?</div>
+            <div class="stale-alert-actions">
+              <button class="btn-sm-primary" id="btn-stale-log">Log Water Now</button>
+              <button class="btn-sm-ghost" id="btn-stale-dismiss">Dismiss</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- EMPTY STATE (Shown if 0 logs in history) -->
+        <div class="empty-state-card" id="empty-state-card" style="display: none;">
+          <svg class="empty-icon" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+          </svg>
+          <h2 class="empty-title">Welcome to JalCycle</h2>
+          <p class="empty-desc">No records yet. Tap below the first time water arrives and JalCycle will instantly start predicting your household cycles.</p>
+        </div>
+
+        <!-- PRIMARY ACTIONS -->
+        <div class="action-group">
+          <button class="btn-primary-cta" id="btn-water-came">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+            </svg>
+            <span>Water Came Today</span>
+          </button>
+          
+          <button class="btn-secondary-link" id="btn-water-noshow">
+            <span>Water didn't come yet (+1 day push)</span>
+          </button>
+        </div>
+
+        <!-- RECENT CYCLES STRIP -->
+        <div class="section-title">
+          <span>Recent Cycles</span>
+          <span id="cycle-count-tag" style="font-size: 0.72rem; color: var(--cyan-primary);">History (0)</span>
+        </div>
+        <div class="cycle-strip-card">
+          <div class="strip-bars-container" id="cycle-strip-container">
+            <!-- Dynamic bars rendered via JavaScript -->
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ==================== HISTORY TAB ==================== -->
+      <section id="history-tab" class="tab-panel">
+        <div class="section-title">Household Analytics</div>
+        
+        <!-- Metrics 4-Grid -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-val" id="metric-total-logs">0</div>
+            <div class="metric-lbl">Total Arrivals</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-val" id="metric-avg-gap">0.0d</div>
+            <div class="metric-lbl">Average Gap</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-val" id="metric-common-gap">5d</div>
+            <div class="metric-lbl">Most Frequent</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-val" id="metric-cycle-num">#0</div>
+            <div class="metric-lbl">Current Cycle</div>
+          </div>
+        </div>
+
+        <div class="section-title">Arrival History</div>
+        <div class="history-list" id="history-list-container">
+          <!-- Dynamically populated history item cards -->
+        </div>
+      </section>
+
+      <!-- ==================== SETTINGS TAB ==================== -->
+      <section id="settings-tab" class="tab-panel">
+        
+        <div class="settings-section">
+          <div class="settings-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span>Household & Member</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="setting-household-name">Household Name</label>
+            <input type="text" id="setting-household-name" class="form-input" placeholder="e.g. Sharma Residence" value="My Home">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="setting-user-name">Your Name (Logged By)</label>
+            <input type="text" id="setting-user-name" class="form-input" placeholder="e.g. Priya" value="Family Member">
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>Default Water Gaps</span>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">Standard expected days between arrivals (select one or more):</p>
+          <div class="gap-chips-grid" id="settings-gap-grid">
+            <button class="chip-btn" data-gap="4">4 Days</button>
+            <button class="chip-btn selected" data-gap="5">5 Days</button>
+            <button class="chip-btn" data-gap="6">6 Days</button>
+            <button class="chip-btn" data-gap="7">7 Days</button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+            <span>Family Sync & Backup</span>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">Share your water logs with family members without creating accounts:</p>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <button class="btn-full-secondary" id="btn-share-family">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              <span>Share Sync Link on WhatsApp</span>
+            </button>
+            <button class="btn-full-secondary" id="btn-export-json">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Export Backup JSON</span>
+            </button>
+            <button class="btn-full-secondary" id="btn-import-json">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span>Import Data from File</span>
+            </button>
+            <input type="file" id="file-import-input" accept=".json" style="display: none;">
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-title" style="color: var(--red-overdue);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            <span>Danger Zone</span>
+          </div>
+          <button class="btn-full-danger" id="btn-clear-data">
+            <span>Clear All Data</span>
+          </button>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- FIXED BOTTOM TAB NAV BAR -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-tab="home-tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        <span>HOME</span>
+      </button>
+      <button class="nav-item" data-tab="history-tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        <span>HISTORY</span>
+      </button>
+      <button class="nav-item" data-tab="settings-tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        <span>SETTINGS</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ==================== LOG WATER BOTTOM SHEET MODAL ==================== -->
+  <div class="modal-overlay" id="log-modal-overlay">
+    <div class="bottom-sheet" id="log-bottom-sheet">
+      <div class="sheet-grab-bar"></div>
+      <div class="sheet-header">
+        <h2 class="sheet-title" id="log-modal-title">Record Water Arrival</h2>
+        <button class="sheet-close-btn" id="btn-close-log-modal" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Form Inputs -->
+      <div class="form-group">
+        <label class="form-label">Arrival Date</label>
+        <div class="date-presets-row">
+          <button class="preset-pill active" id="preset-today">Today</button>
+          <button class="preset-pill" id="preset-yesterday">Yesterday</button>
+        </div>
+        <input type="date" id="log-input-date" class="form-input">
+      </div>
+
+      <div class="form-group" style="margin-top: 14px;">
+        <label class="form-label">Next cycle expected after how many days?</label>
+        <div class="form-helper-text">Select all the days the water might arrive.</div>
+        <div class="gap-chips-grid" id="log-gap-chips" style="margin-top: 6px;">
+          <button class="chip-btn" data-gap="4">4 Days</button>
+          <button class="chip-btn selected" data-gap="5">5 Days</button>
+          <button class="chip-btn" data-gap="6">6 Days</button>
+          <button class="chip-btn" data-gap="7">7 Days</button>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top: 14px;">
+        <label class="form-label" for="log-input-name">Logged By</label>
+        <input type="text" id="log-input-name" class="form-input" placeholder="Your name">
+      </div>
+
+      <div class="form-group" style="margin-top: 14px;">
+        <label class="form-label" for="log-input-note">Notes (Optional)</label>
+        <input type="text" id="log-input-note" class="form-input" placeholder="e.g. Came at 6am, good pressure">
+      </div>
+
+      <div class="sheet-actions-row">
+        <button class="btn-modal-cancel" id="btn-cancel-log">Cancel</button>
+        <button class="btn-modal-save" id="btn-save-log">Save Arrival</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== EDIT ENTRY BOTTOM SHEET MODAL ==================== -->
+  <div class="modal-overlay" id="edit-modal-overlay">
+    <div class="bottom-sheet">
+      <div class="sheet-grab-bar"></div>
+      <div class="sheet-header">
+        <h2 class="sheet-title">Edit Water Record</h2>
+        <button class="sheet-close-btn" id="btn-close-edit-modal" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <input type="hidden" id="edit-entry-id">
+      
+      <div class="form-group">
+        <label class="form-label">Arrival Date</label>
+        <input type="date" id="edit-input-date" class="form-input">
+      </div>
+      
+      <div class="form-group" style="margin-top: 14px;">
+        <label class="form-label">Cycle Gap (Days)</label>
+        <div class="gap-chips-grid" id="edit-gap-chips">
+          <button class="chip-btn" data-gap="4">4 Days</button>
+          <button class="chip-btn" data-gap="5">5 Days</button>
+          <button class="chip-btn" data-gap="6">6 Days</button>
+          <button class="chip-btn" data-gap="7">7 Days</button>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top: 14px;">
+        <label class="form-label">Logged By</label>
+        <input type="text" id="edit-input-name" class="form-input">
+      </div>
+
+      <div class="form-group" style="margin-top: 14px;">
+        <label class="form-label">Note</label>
+        <input type="text" id="edit-input-note" class="form-input">
+      </div>
+
+      <div class="sheet-actions-row">
+        <button class="btn-modal-cancel" id="btn-cancel-edit">Cancel</button>
+        <button class="btn-modal-save" id="btn-save-edit">Update Entry</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== HELP & GUIDE MODAL SHEET ==================== -->
+  <div class="modal-overlay" id="help-modal-overlay">
+    <div class="bottom-sheet">
+      <div class="sheet-grab-bar"></div>
+      <div class="sheet-header">
+        <h2 class="sheet-title">How JalCycle Works</h2>
+        <button class="sheet-close-btn" id="btn-close-help-modal" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div style="font-size: 0.88rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 14px; line-height: 1.5;">
+        <div>
+          <strong style="color: var(--cyan-primary); display: block; margin-bottom: 2px;">1. Tap when water comes</strong>
+          Whenever municipal or tanker water arrives at your home, open JalCycle and tap <strong>"Water Came Today"</strong>.
+        </div>
+        <div>
+          <strong style="color: var(--cyan-primary); display: block; margin-bottom: 2px;">2. Pick expected gap</strong>
+          Choose your usual cycle (4, 5, 6, or 7 days). JalCycle auto-recommends your household's most frequent pattern.
+        </div>
+        <div>
+          <strong style="color: var(--cyan-primary); display: block; margin-bottom: 2px;">3. Instant clear predictions</strong>
+          Opening the app instantly shows the exact expected arrival date and days left, with zero internet or logins required.
+        </div>
+        <div>
+          <strong style="color: var(--cyan-primary); display: block; margin-bottom: 2px;">4. Sync with family</strong>
+          Use the WhatsApp Share button in Settings to send your updated water log to family members so everyone stays synced.
+        </div>
+      </div>
+
+      <div style="margin-top: 24px;">
+        <button class="btn-full-secondary" id="btn-help-gotit">Got It!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== CONFIRMATION DIALOG MODAL ==================== -->
+  <div class="modal-overlay" id="confirm-modal-overlay">
+    <div class="bottom-sheet">
+      <div class="sheet-grab-bar"></div>
+      <div class="sheet-header">
+        <h2 class="sheet-title" id="confirm-modal-title">Confirm Action</h2>
+      </div>
+      <p id="confirm-modal-msg" style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 20px;">Are you sure?</p>
+      <div class="sheet-actions-row">
+        <button class="btn-modal-cancel" id="btn-confirm-cancel">Cancel</button>
+        <button class="btn-modal-save" id="btn-confirm-proceed" style="background: linear-gradient(135deg, #f87171, #dc2626); color: #fff;">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TOAST NOTIFICATION CONTAINER ==================== -->
+  <div class="toast-container" id="toast-container">
+    <div class="toast-body">
+      <svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+      <span id="toast-message">Action successful!</span>
+    </div>
+  </div>
+
+  <!-- RIPPLE ANIMATION LAYER -->
+  <div class="ripple-overlay" id="ripple-overlay"></div>
+
+  <!-- Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
